@@ -12,11 +12,13 @@
       <ul class="my-2" v-for="(message, index) in messages" :key="index">
         <div v-if="message.username === username">
           <p class="my-2"> <small class="mr-2 text-gray-400">You </small></p>
-          <span class=" bg-indigo-600 p-2 text-white my-2 rounded-lg"> {{ message.text }}</span>
+          <span :class="{ 'bg-indigo-600': !hasHTMLTags(message.text) }" class="p-2 text-white my-2 rounded-lg"
+            v-html="message.text"></span>
         </div>
         <div v-else class="text-right">
           <p class="my-2"><small class="text-gray-400">{{ message.username }}</small></p>
-          <span class=" bg-indigo-600 p-2 text-white my-2 rounded-lg"> {{ message.text }}</span>
+          <span :class="{ 'bg-indigo-600': !hasHTMLTags(message.text) }" class="p-2 text-white my-2 rounded-lg"
+            v-html="message.text"></span>
         </div>
       </ul>
     </div>
@@ -31,11 +33,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted} from 'vue';
+import { ref, onMounted, watchEffect } from 'vue';
 import { io } from 'socket.io-client';
 import { useAuthStore } from '@/stores/store';
 import { decodeJWT } from '../stores/jwt';
-
+import axios from 'axios'
 const store = useAuthStore();
 
 
@@ -44,7 +46,9 @@ const emit = defineEmits(['toggle-visibility']);
 const toggleVisibility = () => {
   emit('toggle-visibility');
 };
-
+const hasHTMLTags = (text) => {
+  return /<[a-z][\s\S]*>/i.test(text);
+}
 
 let userEmail = '';
 if (store.token != null) {
@@ -60,6 +64,9 @@ let socket;
 const serverURL = `${window.location.protocol}//${window.location.host.replace(/:\d+$/, '')}`;
 let API_URL = `${serverURL}:3000`;
 
+const URL = `${window.location.protocol}//${window.location.host.replace(/:\d+$/, '')}`;
+let API = `${URL}:5000/`;
+
 
 onMounted(() => {
   socket = io(`${API_URL}`);
@@ -68,7 +75,7 @@ onMounted(() => {
     messages.value.push(data);
     sessionStorage.setItem('chatMessages', JSON.stringify(messages.value));
   });
-}); 
+});
 
 const sendMessage = () => {
   const message = {
@@ -79,6 +86,43 @@ const sendMessage = () => {
   messageInput.value = '';
 };
 
+const selectedTrackId = ref(null);
+const tracks = ref([]);
+const titleTracks = ref();
+
+watchEffect(() => {
+  selectedTrackId.value = store.getTokenID();
+  titleTracks.value = store.getTracks();
+  console.log(titleTracks.value)
+  if (titleTracks.value != null) {
+    axios.get(`${API}spotify/${titleTracks.value}`)
+      .then((response) => {
+        tracks.value = response.data.tracks;
+        tracks.value.forEach(element => {
+          if (element.id == selectedTrackId.value) {
+
+            let link = `<section class="w-full">
+        <iframe  style="border-radius:12px"
+         class="w-full lg:w-4/5 xl:w-110" height="100"
+          src="https://open.spotify.com/embed/track/${element.id}?utm_source=generator" frameborder="0"
+          allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+          loading="lazy"></iframe>
+      </section>`;
+            const message = {
+              username: username.value,
+              text: link
+            };
+            socket.emit('message', message);
+            messageInput.value = '';
+          }
+        });
+
+      })
+      .catch((error) => {
+        console.error('An error occurred while fetching Spotify tracks:', error);
+      });
+  }
+});
 
 </script>
 <style scoped>
