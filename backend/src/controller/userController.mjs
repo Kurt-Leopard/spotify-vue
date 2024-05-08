@@ -5,7 +5,7 @@ async function addUser(req,res){
 
  const {fullname, email, password}=req.body;
  const pwd= await bcrypt.hash(password,10);
- const data=[fullname, email,pwd,'user'];
+ const data=['image.png',fullname, email,pwd,'user'];
 
  addUserModel(data,(err,results)=>{
      if(err){

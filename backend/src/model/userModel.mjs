@@ -1,7 +1,7 @@
 import {connection} from '../config/db.mjs';
 
 function addUserModel(data, callback){
-    const query="INSERT INTO users (fullname,email,password,role) VALUES(?,?,?,?)";
+    const query="INSERT INTO users (profile,fullname,email,password,role) VALUES(?,?,?,?,?)";
     connection.query(query, data, callback);
 }
 

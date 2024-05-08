@@ -84,7 +84,7 @@ async function verifyCode(req, res) {
 
 async function newPassword(req, res) {
     const  password  = req.body.password;
-    const userId  = req.params.id;
+    const userId  = req.params.id; 
     console.log(userId)
     const pwd= await bcrypt.hash(password,10);
     console.log(password)
